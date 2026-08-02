@@ -1,7 +1,19 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import { neon } from "@neondatabase/serverless";
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
+import "dotenv/config";
 
-const sql = neon(process.env.DATABASE_URL!);
+const url = process.env.DATABASE_URL!;
 
-export const db = drizzle(sql, { schema });
+if (!url) {
+  throw new Error(
+    "DATABASE_URL is not defined in the environment variables."
+  );
+}
+
+export const client = postgres(url);
+
+export const db = drizzle(client, {
+  schema,
+  casing: "snake_case",
+});

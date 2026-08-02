@@ -1,17 +1,21 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import cookieParser from "cookie-parser";
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AppModule } from './app.module';
+import { RolesGuard } from './Auth/guards/roles.guard';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule); 
 
+  const webUrl = process.env.MOBILE_APP_URL ?? "http://localhost:3001";
+
+  app.enableCors({
+    origin: webUrl,
+    credentials: true,
+  })
+
   const configService = app.get(ConfigService);
 
-  app.use(cookieParser())
 
   app.setGlobalPrefix('api');
 
@@ -21,17 +25,16 @@ async function bootstrap() {
     transform: true,
   }));
 
-  app.useGlobalFilters(new HttpExceptionFilter());
-
-  const config = new DocumentBuilder().setTitle("Viva Homes API").setVersion("1.0").addBasicAuth().build();
-
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  app.useGlobalGuards(
+    new RolesGuard(
+      app.get(Reflector),
+    )
+  )
 
   const port = configService.get<number>('PORT') ?? 3000;
   await app.listen(port);
 
   console.log(`Server is running on http://localhost:${port}/api`)
-  console.log(`Swagger docs is running on http://localhost:${port}/api/docs`)
+  
 }
 bootstrap();
