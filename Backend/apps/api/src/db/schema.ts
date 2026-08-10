@@ -8,6 +8,7 @@ export const user = pgTable("user", {
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
   role: text("role").notNull().default("user"),
+  accountType: text("account_type").notNull().default("customer"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
@@ -102,9 +103,25 @@ export const properties = pgTable("properties", {
 
   description: text("description"),
 
-  location: text("location").notNull(),
+  type: text("type").notNull(),
+  listingType: text("listingtype").notNull(),
 
-  pricePerNight: integer("price_per_night").notNull(),
+  city: text("city").notNull(),
+  subCity: text("subcity"),
+  address: text("address"),
+
+  longitude: integer("longitude"),
+  latitude: integer("latitude"),
+
+  bedrooms: integer("bedrooms").notNull(),
+  bathrooms: integer("bathrooms").notNull(),
+  area: integer("area").notNull(),
+
+  status: text("status").default("available").notNull(),
+
+  price: integer("price").notNull(),
+
+  createdById: text("created_by_id").notNull(),
 
   createdAt: timestamp("created_at")
     .defaultNow(),
