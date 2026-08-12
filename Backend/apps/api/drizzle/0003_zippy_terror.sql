@@ -1,1 +1,0 @@
-ALTER TABLE "properties" ADD COLUMN "created_by_id" text NOT NULL;
