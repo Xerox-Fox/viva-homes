@@ -7,7 +7,7 @@ export function SiteFooter() {
         <div>
           <p className="text-sm font-extrabold uppercase tracking-[0.3em]">Viva Homes</p>
           <p className="mt-4 max-w-xs text-sm text-primary-foreground/70">
-            Making finding and owning homes easier in Ethiopia.
+            Making, finding and owning homes easier in Ethiopia.
           </p>
         </div>
         <div>

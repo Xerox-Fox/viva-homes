@@ -2,14 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-
-const demoUser = {
-  name: "Abebe Bekele",
-  email: "abebe@example.com",
-  role: "client" as const,
-};
+import { signOut, useSession } from "@/lib/auth-client";
 
 const roleLabels: Record<string, string> = {
   client: "Client",
@@ -20,11 +16,47 @@ const roleLabels: Record<string, string> = {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const user = demoUser;
-  const role = user.role;
 
-  function handleSignOut() {
-    router.push("/login");
+  const { data: session, isPending } = useSession();
+
+  // All hooks must run before any conditional return
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.push("/login");
+    }
+  }, [session, isPending, router]);
+
+  if (isPending) {
+    return (
+      <>
+        <SiteHeader />
+
+        <main className="mx-auto max-w-5xl px-5 py-14">
+          <p className="text-sm text-muted-foreground">
+            Loading your account...
+          </p>
+        </main>
+
+        <SiteFooter />
+      </>
+    );
+  }
+
+  if (!session) {
+    return null;
+  }
+
+  const user = session.user;
+  const role = user.role ?? "client";
+
+  async function handleSignOut() {
+    await signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push("/login");
+        },
+      },
+    });
   }
 
   return (
@@ -32,9 +64,13 @@ export default function DashboardPage() {
       <SiteHeader />
 
       <main className="mx-auto max-w-5xl px-5 py-14">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">Dashboard</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">
+          Dashboard
+        </p>
 
-        <h1 className="mt-3 text-3xl font-extrabold text-foreground">Welcome, {user.name}</h1>
+        <h1 className="mt-3 text-3xl font-extrabold text-foreground">
+          Welcome, {user.name}
+        </h1>
 
         <p className="mt-2 text-sm text-muted-foreground">
           You are signed in as {roleLabels[role] ?? "a member"}.
@@ -42,40 +78,61 @@ export default function DashboardPage() {
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <div className="rounded-3xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">Account</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Account
+            </h2>
 
             <dl className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Name</dt>
-                <dd className="font-medium text-foreground">{user.name}</dd>
+                <dd className="font-medium text-foreground">
+                  {user.name}
+                </dd>
               </div>
+
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Email</dt>
-                <dd className="font-medium text-foreground">{user.email}</dd>
+                <dd className="font-medium text-foreground">
+                  {user.email}
+                </dd>
               </div>
+
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Role</dt>
-                <dd className="font-medium text-foreground">{roleLabels[role] ?? "—"}</dd>
+                <dd className="font-medium text-foreground">
+                  {roleLabels[role] ?? "—"}
+                </dd>
               </div>
             </dl>
           </div>
 
           <div className="rounded-3xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">Next steps</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Next steps
+            </h2>
 
             <div className="mt-4 flex flex-col gap-3 text-sm">
               {role === "home_owner" || role === "agent" ? (
-                <Link href="/list-property" className="font-semibold text-primary">
+                <Link
+                  href="/list-property"
+                  className="font-semibold text-primary"
+                >
                   List a property →
                 </Link>
               ) : null}
 
-              <Link href="/properties" className="font-semibold text-primary">
+              <Link
+                href="/properties"
+                className="font-semibold text-primary"
+              >
                 Browse verified homes →
               </Link>
 
               {role === "agent" ? (
-                <Link href="/agencies" className="font-semibold text-primary">
+                <Link
+                  href="/agencies"
+                  className="font-semibold text-primary"
+                >
                   Agency services →
                 </Link>
               ) : null}

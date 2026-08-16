@@ -6,25 +6,69 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AuthShell } from "@/components/auth-shell";
 
+
+type AppRole = "client" | "agent" | "home_owner";
+
+const roles: { value: AppRole; label: string; description: string }[] = [
+  { value: "client", label: "Client", description: "I want to rent or buy a home" },
+  { value: "agent", label: "Agent", description: "I work with an agency or as a broker" },
+  { value: "home_owner", label: "Home owner", description: "I want to list my property" },
+];
+
 const inputClass =
   "w-full rounded-full border border-input bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-accent focus:ring-2 focus:ring-ring/40";
 
-export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  export default function LoginPage() {
+    const router = useRouter();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
 
-  function handleSubmit(event: React.FormEvent) {
+    const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setLoading(true);
 
-    setTimeout(() => {
-      toast.success("Successfully signed in!");
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/sign-in/email`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        const message = result.message || "Invalid email or password";
+
+        setError(message);
+        toast.error(message);
+        return;
+      }
+
+      toast.success("Logged in successfully!");
+
       router.push("/dashboard");
+    } catch (error) {
+      console.error(error);
+
+      setError("Unable to connect to the server.");
+      toast.error("Unable to connect to the server.");
+    } finally {
       setLoading(false);
-    }, 600);
-  }
+    }
+  };
 
   return (
     <AuthShell

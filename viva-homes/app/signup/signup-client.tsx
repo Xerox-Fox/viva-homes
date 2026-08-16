@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { AuthShell, GoogleButton } from "@/components/auth-shell";
+import { authClient } from "@/lib/auth-client";
 
 type AppRole = "client" | "agent" | "home_owner";
 
@@ -19,27 +21,80 @@ const inputClass =
 
 export default function SignUpPage() {
   const router = useRouter();
-  const [fullName, setFullName] = useState("");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<AppRole>("client");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(event: React.FormEvent) {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
+    setError("");
 
-    setTimeout(() => {
-      toast.success("Account created successfully!");
-      setSent(true);
-      setLoading(false);
-    }, 600);
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
+    await authClient.signUp.email({
+      name,
+      email,
+      password,
+      role,
+      callbackURL: "/dashboard",
+    } as Parameters<typeof authClient.signUp.email>[0],
+    {
+      onRequest: () => {
+        setLoading(true)
+      },
+      onSuccess: () => {
+        setLoading(false)
+        router.push("/dashboard")
+        router.refresh()
+      },
+      onError: (ctx) => {
+        setLoading(false)
+        setError(ctx.error.message || "Failed to create account.")
+      }
+    }
+  )
+    
   }
 
-  function handleGoogle() {
-    toast.info("Google sign-up is not configured yet.");
+  async function handleSocialSignup(provider: "google") {
+    setError(null);
+    setLoading(true);
+
+    try {
+      const result = await authClient.signIn.social({
+        provider,
+        callbackURL: "/dashboard",
+      });
+
+      if (result.error) {
+        console.error("Google signup error:", result.error);
+
+        setError(result.error.message || "Google signup failed.");
+        toast.error(result.error.message || "Google signup failed.");
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error("Google signup error:", error);
+
+      setError("Unable to connect to the authentication server.");
+      toast.error("Unable to connect to the authentication server.");
+      setLoading(false);
+    }
   }
 
   if (sent) {
@@ -106,8 +161,8 @@ export default function SignUpPage() {
         <Field label="Full name">
           <input
             required
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             placeholder="Abebe Bekele"
             className={inputClass}
           />
@@ -134,10 +189,22 @@ export default function SignUpPage() {
           <input
             required
             type="password"
-            minLength={6}
+            minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="At least 8 characters"
+            className={inputClass}
+          />
+        </Field>
+
+        <Field label="Confirm Password">
+          <input
+            required
+            type="password"
+            minLength={8}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Repeat the same password"
             className={inputClass}
           />
         </Field>
@@ -154,7 +221,7 @@ export default function SignUpPage() {
       <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
         <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
       </div>
-      <GoogleButton onClick={handleGoogle} disabled={loading} />
+      <GoogleButton onClick={() => handleSocialSignup} disabled={loading} />
     </AuthShell>
   );
 }
